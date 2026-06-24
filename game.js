@@ -336,13 +336,6 @@ function createCandy(row, col) {
   return { row, col, type: randomType(), id: nextId++, special: null };
 }
 
-function updateAudioButton() {
-  if (!audioButton) return;
-  audioButton.classList.toggle("audio-off", !audioEnabled);
-  audioButton.classList.toggle("audio-on", audioEnabled);
-  audioButton.setAttribute("aria-label", audioEnabled && audioStarted ? "关闭声音" : "开启声音");
-  audioButton.title = audioEnabled ? "声音已开" : "声音已关";
-}
 
 function toggleAudio() {
   if (!audioEnabled) {
