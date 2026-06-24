@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>糖豆乐园</title>
+    <link rel="stylesheet" href="styles.css?v=5" />
+  </head>
+  <body class="cover-active">
+    <section class="cover-screen" id="coverScreen" aria-label="糖豆乐园封面">
+      <img class="cover-art" src="assets/tangdou-cover.png" alt="糖豆乐园封面：卡通糖豆和糖果乐园" />
+      <div class="cover-actions">
+        <button class="start-button" id="startButton" type="button">开始游戏</button>
+      </div>
+    </section>
+
+    <main class="game-shell">
+      <section class="top-panel" aria-label="关卡状态">
+        <div class="title-block">
+          <p class="eyebrow">甜点小关卡</p>
+          <h1>糖豆乐园</h1>
+        </div>
+        <div class="cat-companion mood-ready" id="catCompanion" aria-label="陪玩猫猫：准备好了">
+          <div class="cat-bubble" id="catBubble" aria-hidden="true">喵，开局！</div>
+          <div class="cat-portrait" aria-hidden="true">
+            <img src="assets/tangdou-mascot.png" alt="" />
+          </div>
+        </div>
+        <div class="header-side">
+          <div class="stats" aria-live="polite">
+            <div class="stat">
+              <span>分数</span>
+              <strong id="score">0</strong>
+            </div>
+            <div class="stat">
+              <span>目标</span>
+              <strong id="target">6000</strong>
+            </div>
+            <div class="stat">
+              <span>步数</span>
+              <strong id="moves">24</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="play-area" aria-label="糖果棋盘">
+        <div class="goal-strip">
+          <div class="goal-copy">
+            <span id="statusText">交换相邻糖果，凑齐 3 个同色就会消除。</span>
+          </div>
+          <div class="action-buttons">
+            <button class="icon-button audio-on" id="audioButton" type="button" aria-label="关闭声音" title="声音开关">♪</button>
+            <button class="small-button" id="restartButton" type="button">重新开始</button>
+          </div>
+        </div>
+        <div class="board-wrap">
+          <div class="board" id="board" aria-label="8乘8糖果棋盘"></div>
+        </div>
+      </section>
+    </main>
+
+    <div class="modal hidden" id="resultModal" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+      <div class="modal-card">
+        <p class="eyebrow" id="resultKicker">关卡结束</p>
+        <h2 id="resultTitle">太甜了！</h2>
+        <p id="resultMessage">你完成了目标。</p>
+        <div class="leaderboard-panel" aria-live="polite">
+          <h3>排行榜</h3>
+          <ol id="leaderboardList">
+            <li>部署排行榜接口后显示成绩。</li>
+          </ol>
+        </div>
+        <button id="playAgainButton" type="button">再玩一次</button>
+      </div>
+    </div>
+
+    <script src="game.js?v=5"></script>
+  </body>
+</html>
