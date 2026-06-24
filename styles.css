@@ -708,6 +708,61 @@ h1 {
   font-weight: 800;
 }
 
+.leaderboard-panel {
+  margin: 18px 0 12px;
+  padding: 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  text-align: left;
+}
+
+.leaderboard-panel h3 {
+  margin: 0 0 10px;
+  color: #5c245e;
+  font-size: 1rem;
+}
+
+.leaderboard-panel ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 22px;
+  color: #684070;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.leaderboard-panel li::marker {
+  color: #d94b8a;
+}
+
+.leaderboard-panel .score-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.leaderboard-panel .score-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leaderboard-panel .score-value {
+  flex: 0 0 auto;
+  color: #d94b8a;
+}
+
+.leaderboard-panel .my-rank {
+  margin-top: 10px;
+  color: #5c245e;
+  font-size: 0.86rem;
+  font-weight: 900;
+  text-align: center;
+}
+
 .modal-card button {
   margin-top: 8px;
 }

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>糖豆乐园</title>
-    <link rel="stylesheet" href="styles.css?v=4" />
+    <link rel="stylesheet" href="styles.css?v=5" />
   </head>
   <body class="cover-active">
     <section class="cover-screen" id="coverScreen" aria-label="糖豆乐园封面">
@@ -65,10 +65,16 @@
         <p class="eyebrow" id="resultKicker">关卡结束</p>
         <h2 id="resultTitle">太甜了！</h2>
         <p id="resultMessage">你完成了目标。</p>
+        <div class="leaderboard-panel" aria-live="polite">
+          <h3>排行榜</h3>
+          <ol id="leaderboardList">
+            <li>部署排行榜接口后显示成绩。</li>
+          </ol>
+        </div>
         <button id="playAgainButton" type="button">再玩一次</button>
       </div>
     </div>
 
-    <script src="game.js?v=4"></script>
+    <script src="game.js?v=5"></script>
   </body>
 </html>

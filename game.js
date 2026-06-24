@@ -14,12 +14,15 @@ const catCompanion = document.querySelector("#catCompanion");
 const catBubble = document.querySelector("#catBubble");
 const coverScreen = document.querySelector("#coverScreen");
 const startButton = document.querySelector("#startButton");
+const leaderboardList = document.querySelector("#leaderboardList");
 
 const SIZE = 8;
 const TYPES = 6;
 const START_MOVES = 24;
 const TARGET_SCORE = 6000;
 const CELL_COUNT = SIZE * SIZE;
+const API_BASE = window.TANGDOU_API_BASE || localStorage.getItem("tangdouApiBase") || "";
+const PLAYER_NAME_KEY = "tangdouGuestName";
 
 let board = [];
 let score = 0;
@@ -257,6 +260,97 @@ function setCatMood(mood, message) {
   catCompanion.className = `cat-companion mood-${mood}`;
   catCompanion.setAttribute("aria-label", `陪玩猫猫：${message}`);
   catBubble.textContent = message;
+}
+
+function renderLeaderboardMessage(message) {
+  if (!leaderboardList) return;
+  leaderboardList.innerHTML = "";
+  const item = document.createElement("li");
+  item.textContent = message;
+  leaderboardList.append(item);
+}
+
+function getGuestName() {
+  const savedName = localStorage.getItem(PLAYER_NAME_KEY);
+  if (savedName) return savedName;
+  const defaultName = "糖豆玩家";
+  localStorage.setItem(PLAYER_NAME_KEY, defaultName);
+  return defaultName;
+}
+
+function renderLeaderboard(items, myRank = null) {
+  if (!leaderboardList) return;
+  leaderboardList.innerHTML = "";
+
+  if (!items.length) {
+    renderLeaderboardMessage("还没有成绩，来当第一名。");
+    return;
+  }
+
+  for (const entry of items) {
+    const item = document.createElement("li");
+    const line = document.createElement("span");
+    const name = document.createElement("span");
+    const value = document.createElement("span");
+
+    line.className = "score-line";
+    name.className = "score-name";
+    value.className = "score-value";
+    name.textContent = entry.displayName || "糖豆玩家";
+    value.textContent = `${entry.score} 分`;
+    line.append(name, value);
+    item.append(line);
+    leaderboardList.append(item);
+  }
+
+  if (myRank) {
+    const item = document.createElement("li");
+    item.className = "my-rank";
+    item.textContent = `你的本局排名：第 ${myRank.rank} 名`;
+    leaderboardList.append(item);
+  }
+}
+
+async function syncLeaderboard() {
+  if (!API_BASE) {
+    renderLeaderboardMessage("排行榜接口部署后显示线上排名。");
+    return;
+  }
+
+  renderLeaderboardMessage("正在同步排行榜...");
+
+  try {
+    const scoreResponse = await fetch(`${API_BASE}/api/scores`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        score,
+        movesLeft: Math.max(0, moves),
+        level: "classic",
+        guestName: getGuestName(),
+      }),
+    });
+
+    if (!scoreResponse.ok) {
+      throw new Error("score_submit_failed");
+    }
+
+    const scoreData = await scoreResponse.json();
+    const [leaderboardResponse, rankResponse] = await Promise.all([
+      fetch(`${API_BASE}/api/leaderboard?level=classic&limit=8`),
+      fetch(`${API_BASE}/api/leaderboard/me?scoreId=${encodeURIComponent(scoreData.id)}`),
+    ]);
+
+    if (!leaderboardResponse.ok || !rankResponse.ok) {
+      throw new Error("leaderboard_load_failed");
+    }
+
+    const leaderboardData = await leaderboardResponse.json();
+    const rankData = await rankResponse.json();
+    renderLeaderboard(leaderboardData.items || [], rankData.item || null);
+  } catch (_error) {
+    renderLeaderboardMessage("排行榜暂时连不上，稍后再试。");
+  }
 }
 
 function updateCatMood() {
@@ -647,7 +741,9 @@ function endGame(won) {
   resultKicker.textContent = won ? "目标达成" : "步数用完";
   resultTitle.textContent = won ? "太甜了！" : "差一点点";
   resultMessage.textContent = won ? `你拿到了 ${score} 分，糖豆乐园亮晶晶。` : `这次拿到 ${score} 分，再来一局会更顺。`;
+  renderLeaderboardMessage("准备同步排行榜...");
   resultModal.classList.remove("hidden");
+  syncLeaderboard();
 }
 
 function handleTileClick(event) {
@@ -728,6 +824,7 @@ function restartGame() {
   gameOver = false;
   dragStart = null;
   statusText.textContent = "交换相邻糖果，凑齐 3 个同色就会消除。";
+  renderLeaderboardMessage("部署排行榜接口后显示成绩。");
   resultModal.classList.add("hidden");
   createBoard();
   render();
