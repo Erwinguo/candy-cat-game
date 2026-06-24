@@ -1,4 +1,4 @@
-import pg from "pg";
+﻿import pg from "pg";
 import { requireDatabaseUrl } from "./config.js";
 
 const { Pool } = pg;
@@ -9,7 +9,10 @@ export const pool = new Pool({
   ssl: process.env.DATABASE_SSL === "false" ? false : { rejectUnauthorized: false },
 });
 
-export async function query<T>(text: string, values: unknown[] = []) {
+export async function query<T extends pg.QueryResultRow = pg.QueryResultRow>(
+  text: string,
+  values: unknown[] = [],
+) {
   const result = await pool.query<T>(text, values);
   return result;
 }

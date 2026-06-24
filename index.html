@@ -1,10 +1,10 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>糖豆乐园</title>
-    <link rel="stylesheet" href="styles.css?v=5" />
+    <link rel="stylesheet" href="styles.css?v=8" />
   </head>
   <body class="cover-active">
     <section class="cover-screen" id="coverScreen" aria-label="糖豆乐园封面">
@@ -20,7 +20,7 @@
           <p class="eyebrow">甜点小关卡</p>
           <h1>糖豆乐园</h1>
         </div>
-        <div class="cat-companion mood-ready" id="catCompanion" aria-label="陪玩猫猫：准备好了">
+        <div class="cat-companion mood-ready" id="catCompanion" aria-label="陪玩猫咪：准备好啦">
           <div class="cat-bubble" id="catBubble" aria-hidden="true">喵，开局！</div>
           <div class="cat-portrait" aria-hidden="true">
             <img src="assets/tangdou-mascot.png" alt="" />
@@ -41,6 +41,12 @@
               <strong id="moves">24</strong>
             </div>
           </div>
+          <div class="user-bar" id="userBar">
+            <button class="small-button login-button hidden" id="loginButton" type="button">Google 登录</button>
+            <button class="small-button wechat-button hidden" id="wechatLoginButton" type="button">微信登录</button>
+            <span class="user-name hidden" id="userName"></span>
+            <button class="small-button logout-button hidden" id="logoutButton" type="button">退出</button>
+          </div>
         </div>
       </section>
 
@@ -50,7 +56,7 @@
             <span id="statusText">交换相邻糖果，凑齐 3 个同色就会消除。</span>
           </div>
           <div class="action-buttons">
-            <button class="icon-button audio-on" id="audioButton" type="button" aria-label="关闭声音" title="声音开关">♪</button>
+            <button class="icon-button audio-on" id="audioButton" type="button" aria-label="关闭声音" title="声音开关">🎵</button>
             <button class="small-button" id="restartButton" type="button">重新开始</button>
           </div>
         </div>
@@ -71,10 +77,13 @@
             <li>部署排行榜接口后显示成绩。</li>
           </ol>
         </div>
-        <button id="playAgainButton" type="button">再玩一次</button>
+        <div class="result-actions">
+          <button id="playAgainButton" type="button">再玩一次</button>
+          <button id="shareButton" class="small-button share-button" type="button">📋 分享成绩</button>
+        </div>
       </div>
     </div>
 
-    <script src="game.js?v=5"></script>
+    <script src="game.js?v=8"></script>
   </body>
 </html>
