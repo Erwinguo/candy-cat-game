@@ -3,27 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>糖霜乐园</title>
-    <link rel="stylesheet" href="styles.css" />
+    <title>糖豆乐园</title>
+    <link rel="stylesheet" href="styles.css?v=4" />
   </head>
-  <body>
+  <body class="cover-active">
+    <section class="cover-screen" id="coverScreen" aria-label="糖豆乐园封面">
+      <img class="cover-art" src="assets/tangdou-cover.png" alt="糖豆乐园封面：卡通糖豆和糖果乐园" />
+      <div class="cover-actions">
+        <button class="start-button" id="startButton" type="button">开始游戏</button>
+      </div>
+    </section>
+
     <main class="game-shell">
       <section class="top-panel" aria-label="关卡状态">
         <div class="title-block">
           <p class="eyebrow">甜点小关卡</p>
-          <h1>糖霜乐园</h1>
+          <h1>糖豆乐园</h1>
         </div>
         <div class="cat-companion mood-ready" id="catCompanion" aria-label="陪玩猫猫：准备好了">
           <div class="cat-bubble" id="catBubble" aria-hidden="true">喵，开局！</div>
-          <div class="cat-face" aria-hidden="true">
-            <span class="cat-ear left"></span>
-            <span class="cat-ear right"></span>
-            <span class="cat-eye left"></span>
-            <span class="cat-eye right"></span>
-            <span class="cat-nose"></span>
-            <span class="cat-mouth"></span>
-            <span class="cat-cheek left"></span>
-            <span class="cat-cheek right"></span>
+          <div class="cat-portrait" aria-hidden="true">
+            <img src="assets/tangdou-mascot.png" alt="" />
           </div>
         </div>
         <div class="header-side">
@@ -69,6 +69,6 @@
       </div>
     </div>
 
-    <script src="game.js"></script>
+    <script src="game.js?v=4"></script>
   </body>
 </html>

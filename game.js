@@ -12,6 +12,8 @@ const resultMessage = document.querySelector("#resultMessage");
 const resultKicker = document.querySelector("#resultKicker");
 const catCompanion = document.querySelector("#catCompanion");
 const catBubble = document.querySelector("#catBubble");
+const coverScreen = document.querySelector("#coverScreen");
+const startButton = document.querySelector("#startButton");
 
 const SIZE = 8;
 const TYPES = 6;
@@ -644,7 +646,7 @@ function endGame(won) {
   playSfx(won ? "win" : "lose");
   resultKicker.textContent = won ? "目标达成" : "步数用完";
   resultTitle.textContent = won ? "太甜了！" : "差一点点";
-  resultMessage.textContent = won ? `你拿到了 ${score} 分，糖霜乐园亮晶晶。` : `这次拿到 ${score} 分，再来一局会更顺。`;
+  resultMessage.textContent = won ? `你拿到了 ${score} 分，糖豆乐园亮晶晶。` : `这次拿到 ${score} 分，再来一局会更顺。`;
   resultModal.classList.remove("hidden");
 }
 
@@ -733,6 +735,13 @@ function restartGame() {
   updateAudioButton();
 }
 
+function enterGame() {
+  document.body.classList.remove("cover-active");
+  coverScreen?.classList.add("hidden");
+  unlockAudio();
+  playSfx("restart");
+}
+
 boardElement.addEventListener("click", handleTileClick);
 boardElement.addEventListener("pointerdown", handlePointerDown);
 boardElement.addEventListener("pointerup", handlePointerUp);
@@ -750,5 +759,6 @@ playAgainButton.addEventListener("click", () => {
   restartGame();
 });
 audioButton.addEventListener("click", toggleAudio);
+startButton?.addEventListener("click", enterGame);
 
 restartGame();
