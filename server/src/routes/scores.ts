@@ -1,6 +1,7 @@
-import type { FastifyPluginAsync } from "fastify";
+﻿import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { query } from "../db.js";
+import { verifySession } from "../auth.js";
 
 const submitScoreSchema = z.object({
   score: z.coerce.number().int().min(0).max(1_000_000),
@@ -42,6 +43,14 @@ function normalizeScore(row: ScoreRow) {
   };
 }
 
+async function getUserIdFromRequest(request: any): Promise<string | null> {
+  const cookie = request.cookies?.tangdou_token;
+  const header = request.headers.authorization?.replace(/^Bearer\s+/i, "");
+  const rawToken = cookie || header;
+  if (!rawToken) return null;
+  return await verifySession(rawToken);
+}
+
 export const scoreRoutes: FastifyPluginAsync = async (app) => {
   app.post("/api/scores", async (request, reply) => {
     const parsed = submitScoreSchema.safeParse(request.body);
@@ -51,15 +60,28 @@ export const scoreRoutes: FastifyPluginAsync = async (app) => {
 
     const { score, movesLeft, level, guestName } = parsed.data;
     const safeGuestName = guestName || "糖豆玩家";
+    const userId = await getUserIdFromRequest(request);
 
-    const result = await query<{ id: string }>(
-      `
-        insert into scores (guest_name, score, moves_left, level)
-        values ($1, $2, $3, $4)
-        returning id
-      `,
-      [safeGuestName, score, movesLeft, level],
-    );
+    let result;
+    if (userId) {
+      result = await query<{ id: string }>(
+        `
+          insert into scores (user_id, guest_name, score, moves_left, level)
+          values ($1, $2, $3, $4, $5)
+          returning id
+        `,
+        [userId, safeGuestName, score, movesLeft, level],
+      );
+    } else {
+      result = await query<{ id: string }>(
+        `
+          insert into scores (guest_name, score, moves_left, level)
+          values ($1, $2, $3, $4)
+          returning id
+        `,
+        [safeGuestName, score, movesLeft, level],
+      );
+    }
 
     return reply.code(201).send({ id: result.rows[0].id });
   });

@@ -1,9 +1,11 @@
-import cors from "@fastify/cors";
+﻿import cors from "@fastify/cors";
+import cookie from "@fastify/cookie";
 import Fastify from "fastify";
 import { config } from "./config.js";
 import { pool } from "./db.js";
 import { authRoutes } from "./routes/auth.js";
 import { scoreRoutes } from "./routes/scores.js";
+import { shareRoutes } from "./routes/shares.js";
 
 const app = Fastify({
   logger: true,
@@ -20,6 +22,8 @@ await app.register(cors, {
   credentials: true,
 });
 
+await app.register(cookie);
+
 app.get("/health", async () => {
   const db = await pool.query("select 1 as ok");
   return { ok: true, database: db.rows[0].ok === 1 };
@@ -27,6 +31,7 @@ app.get("/health", async () => {
 
 await app.register(authRoutes);
 await app.register(scoreRoutes);
+await app.register(shareRoutes);
 
 const shutdown = async () => {
   await app.close();
