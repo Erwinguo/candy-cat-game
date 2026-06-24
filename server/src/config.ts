@@ -15,6 +15,9 @@ export const config = {
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
   googleRedirectUri: process.env.GOOGLE_REDIRECT_URI ?? "http://localhost:8787/api/auth/google/callback",
+  wechatAppId: process.env.WECHAT_APP_ID ?? "",
+  wechatAppSecret: process.env.WECHAT_APP_SECRET ?? "",
+  wechatRedirectUri: process.env.WECHAT_REDIRECT_URI ?? "http://localhost:8787/api/auth/wechat/callback",
   frontendOrigin: process.env.FRONTEND_ORIGIN ?? "http://127.0.0.1:5501",
 };
 

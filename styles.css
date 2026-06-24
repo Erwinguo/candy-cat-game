@@ -1008,3 +1008,15 @@ h1 {
   color: #d4687c;
   font-weight: 600;
 }
+
+/* ── WeChat Button ────────────────────────── */
+.wechat-button {
+  background: #fff;
+  border: 1.5px solid #7bc96e;
+  color: #4a8c3f;
+  font-weight: 600;
+}
+
+.wechat-button:hover {
+  background: #f0faf0;
+}

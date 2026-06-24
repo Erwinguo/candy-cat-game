@@ -16,6 +16,7 @@ const coverScreen = document.querySelector("#coverScreen");
 const startButton = document.querySelector("#startButton");
 const leaderboardList = document.querySelector("#leaderboardList");
 const loginButton = document.querySelector("#loginButton");
+const wechatLoginButton = document.querySelector("#wechatLoginButton");
 const logoutButton = document.querySelector("#logoutButton");
 const userName = document.querySelector("#userName");
 const shareButton = document.querySelector("#shareButton");
@@ -76,7 +77,6 @@ async function checkLoginFromUrl() {
     const token = params.get("token");
     if (token) {
       setAuthToken(token);
-      // Clean URL
       window.history.replaceState({}, "", window.location.pathname);
       await refreshUser();
     }
@@ -104,24 +104,25 @@ function updateUserUI(user) {
   if (!loginButton || !logoutButton || !userName) return;
   if (user) {
     loginButton.classList.add("hidden");
+    if (wechatLoginButton) wechatLoginButton.classList.add("hidden");
     logoutButton.classList.remove("hidden");
     userName.classList.remove("hidden");
     userName.textContent = user.displayName || "玩家";
   } else {
     loginButton.classList.remove("hidden");
+    if (wechatLoginButton) wechatLoginButton.classList.remove("hidden");
     logoutButton.classList.add("hidden");
     userName.classList.add("hidden");
     userName.textContent = "";
   }
 }
 
-function startLogin() {
+function startLogin(provider) {
   if (!API_BASE) {
     alert("请先配置排行榜接口地址。");
     return;
   }
-  // Store current page so callback can redirect back
-  window.location.href = `${API_BASE}/api/auth/google/start?redirect=${encodeURIComponent(window.location.href)}`;
+  window.location.href = `${API_BASE}/api/auth/${provider}/start?redirect=${encodeURIComponent(window.location.href)}`;
 }
 
 function doLogout() {
@@ -336,7 +337,6 @@ function createCandy(row, col) {
   return { row, col, type: randomType(), id: nextId++, special: null };
 }
 
-
 function toggleAudio() {
   if (!audioEnabled) {
     audioEnabled = true;
@@ -386,7 +386,6 @@ function createBoard() {
       board.push(createCandy(row, col));
     }
   }
-  // Remove initial matches
   let initialMatches = findMatches();
   while (initialMatches.length > 0) {
     for (const pos of initialMatches) {
@@ -415,7 +414,6 @@ function swapCells(a, b) {
 
 function findMatches() {
   const matched = new Set();
-  // Horizontal
   for (let row = 0; row < SIZE; row++) {
     for (let col = 0; col <= SIZE - 3; col++) {
       const a = getCandy(row, col);
@@ -431,7 +429,6 @@ function findMatches() {
       }
     }
   }
-  // Vertical
   for (let col = 0; col < SIZE; col++) {
     for (let row = 0; row <= SIZE - 3; row++) {
       const a = getCandy(row, col);
@@ -517,7 +514,6 @@ function gravity() {
         writeRow--;
       }
     }
-    // Fill empty at top
     for (let row = writeRow; row >= 0; row--) {
       const newCandy = createCandy(row, col);
       setCandy(row, col, newCandy);
@@ -555,18 +551,15 @@ async function resolveBoard(initialMatches, moveCells, rainbowPlan) {
     chain++;
     let removed = 0;
 
-    // Handle rainbow first
     if (rainbowPlan && chain === 1) {
       removed += rainbowPlan.targets.length;
       for (const pos of rainbowPlan.targets) {
         setCandy(pos.row, pos.col, null);
       }
-      // Remove rainbow itself
       setCandy(rainbowPlan.rainbow.row, rainbowPlan.rainbow.col, null);
       removed++;
       rainbowPlan = null;
     } else {
-      // Check if any match of 4+ creates a special
       const groups = {};
       for (const pos of matches) {
         const candy = getCandy(pos.row, pos.col);
@@ -577,12 +570,10 @@ async function resolveBoard(initialMatches, moveCells, rainbowPlan) {
       }
       for (const group of Object.values(groups)) {
         if (group.length >= 5) {
-          // Rainbow candy
           const mid = group[Math.floor(group.length / 2)];
           const candy = getCandy(mid.row, mid.col);
           if (candy) candy.special = "rainbow";
         } else if (group.length >= 4 && moveCells) {
-          // Check if move cells involved
           const involved = group.some((p) =>
             moveCells.some((m) => m.row === p.row && m.col === p.col)
           );
@@ -609,17 +600,14 @@ async function resolveBoard(initialMatches, moveCells, rainbowPlan) {
     playSfx(chain > 1 ? "chain" : "clear");
     await delay(260);
 
-    // Gravity + new matches
     gravity();
     render();
     await delay(200);
 
     matches = findMatches();
-    // Check for auto-rainbow activations
     for (const pos of matches) {
       const candy = getCandy(pos.row, pos.col);
       if (candy?.special === "rainbow") {
-        // Find most common type on board
         const typeCount = {};
         for (let r = 0; r < SIZE; r++) {
           for (let c = 0; c < SIZE; c++) {
@@ -927,7 +915,8 @@ playAgainButton.addEventListener("click", () => {
 });
 audioButton.addEventListener("click", toggleAudio);
 startButton?.addEventListener("click", enterGame);
-loginButton?.addEventListener("click", startLogin);
+loginButton?.addEventListener("click", () => startLogin("google"));
+wechatLoginButton?.addEventListener("click", () => startLogin("wechat"));
 logoutButton?.addEventListener("click", doLogout);
 shareButton?.addEventListener("click", shareScore);
 
