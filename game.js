@@ -461,26 +461,27 @@ function findMatches() {
 
 // ── Render ────────────────────────────────────────────
 
-const COLOR_MAP = [
-  "candy-red",
-  "candy-blue",
-  "candy-green",
-  "candy-yellow",
-  "candy-purple",
-  "candy-orange",
-];
-
 function renderTile(candy) {
-  const tile = document.createElement("div");
-  tile.className = `tile ${COLOR_MAP[candy.type] || ""}`;
+  const tile = document.createElement("button");
+  tile.className = "tile";
+  tile.type = "button";
   tile.dataset.row = candy.row;
   tile.dataset.col = candy.col;
+  tile.setAttribute("aria-label", `第 ${candy.row + 1} 行，第 ${candy.col + 1} 列糖果`);
+
   if (selected && selected.row === candy.row && selected.col === candy.col) {
     tile.classList.add("selected");
   }
+
+  const candyElement = document.createElement("span");
+  const specialClass = candy.special === "stripeH" ? "stripe-h" : candy.special === "stripeV" ? "stripe-v" : candy.special;
+  candyElement.className = ["candy", `type-${candy.type}`, specialClass].filter(Boolean).join(" ");
+  tile.append(candyElement);
+
   if (candy.special) {
     tile.classList.add(`special-${candy.special}`);
   }
+
   return tile;
 }
 
