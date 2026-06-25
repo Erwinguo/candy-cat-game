@@ -315,6 +315,7 @@ h1 {
   grid-template-rows: repeat(8, 1fr);
   gap: clamp(6px, 1.2vmin, 10px);
   touch-action: none;
+  contain: layout paint;
 }
 
 .tile {
@@ -347,6 +348,7 @@ h1 {
     0 7px 9px rgba(85, 35, 91, 0.16);
   transform: rotate(var(--twist, -8deg));
   transition: transform 160ms ease;
+  will-change: transform, opacity;
 }
 
 .cat-companion {
