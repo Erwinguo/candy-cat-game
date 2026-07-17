@@ -1,0 +1,10 @@
+.git
+.agents
+.github
+.deploy
+server/node_modules
+server/dist
+server/.env
+node_modules
+server.out.log
+server.err.log

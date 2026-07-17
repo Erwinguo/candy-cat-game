@@ -2,7 +2,7 @@ create extension if not exists pgcrypto;
 
 create table if not exists app_users (
   id uuid primary key default gen_random_uuid(),
-  provider text not null check (provider in ('google', 'wechat', 'guest')),
+  provider text not null check (provider in ('google', 'guest')),
   provider_user_id text not null,
   display_name text not null,
   avatar_url text,

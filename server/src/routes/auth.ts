@@ -5,8 +5,6 @@ import {
   verifySession,
   exchangeGoogleCode,
   fetchGoogleUserInfo,
-  exchangeWeChatCode,
-  fetchWeChatUserInfo,
 } from "../auth.js";
 import { config } from "../config.js";
 import { query } from "../db.js";
@@ -20,9 +18,15 @@ const googleCallbackQuerySchema = z.object({
   state: z.string().optional(),
 });
 
-const wechatCallbackQuerySchema = z.object({
-  code: z.string(),
-  state: z.string().optional(),
+const guestLoginSchema = z.object({
+  clientId: z.string().uuid(),
+  displayName: z.string().trim().min(1).max(16),
+  avatarUrl: z.enum([
+    "assets/avatars/peach-cat.svg",
+    "assets/avatars/mint-bunny.svg",
+    "assets/avatars/lemon-bear.svg",
+    "assets/avatars/grape-fox.svg",
+  ]),
 });
 
 type AppUserRow = {
@@ -67,27 +71,79 @@ function encodeState(url: string): string {
   return Buffer.from(url).toString("base64url");
 }
 
+function buildAuthRedirect(token: string, redirectTarget: string): string {
+  let url: URL;
+  try {
+    url = new URL(redirectTarget, config.frontendOrigin);
+    const allowedOrigin = new URL(config.frontendOrigin).origin;
+    if (url.origin !== allowedOrigin) {
+      url = new URL(config.frontendOrigin);
+    }
+  } catch {
+    url = new URL(config.frontendOrigin);
+  }
+
+  url.searchParams.set("login", "ok");
+  url.searchParams.set("token", token);
+  return url.toString();
+}
+
 function replyWithAuth(reply: any, token: string, redirectTarget: string) {
   return reply
     .setCookie("tangdou_token", token, {
       path: "/",
       httpOnly: true,
-      secure: false,
+      secure: config.frontendOrigin.startsWith("https://"),
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60,
     })
-    .redirect(
-      config.frontendOrigin +
-        "?login=ok&token=" +
-        encodeURIComponent(token),
-    );
+    .redirect(buildAuthRedirect(token, redirectTarget));
+}
+
+function userResponse(user: AppUserRow) {
+  return {
+    id: user.id,
+    provider: user.provider,
+    displayName: user.display_name,
+    avatarUrl: user.avatar_url,
+  };
 }
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
+  // ═══════════════ Username + avatar login ═══════════════
+
+  app.post("/api/auth/guest", async (request, reply) => {
+    const parsed = guestLoginSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: "invalid_guest_profile",
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const user = await upsertUser(
+      "guest",
+      parsed.data.clientId,
+      parsed.data.displayName,
+      parsed.data.avatarUrl,
+    );
+    const token = await signSession(user.id);
+
+    return reply
+      .setCookie("tangdou_token", token, {
+        path: "/",
+        httpOnly: true,
+        secure: config.frontendOrigin.startsWith("https://"),
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60,
+      })
+      .send({ token, user: userResponse(user) });
+  });
+
   // ═══════════════ Google OAuth ═══════════════
 
   app.get("/api/auth/google/start", async (request, reply) => {
-    if (!config.googleClientId) {
+    if (!config.googleClientId || !config.googleClientSecret) {
       return reply.code(501).send({
         error: "not_configured",
         message:
@@ -120,6 +176,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     try {
       const accessToken = await exchangeGoogleCode(parsed.data.code);
       const userInfo = await fetchGoogleUserInfo(accessToken);
+
       const user = await upsertUser(
         "google",
         userInfo.sub,
@@ -132,68 +189,6 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     } catch (err: any) {
       request.log.error(err, "Google OAuth callback failed");
       return reply.code(401).send({ error: "google_auth_failed", message: err.message });
-    }
-  });
-
-  // ═══════════════ WeChat OAuth ═══════════════
-
-  app.get("/api/auth/wechat/start", async (request, reply) => {
-    if (!config.wechatAppId) {
-      return reply.code(501).send({
-        error: "not_configured",
-        message:
-          "Set WECHAT_APP_ID and WECHAT_APP_SECRET in server/.env to enable WeChat login.",
-      });
-    }
-
-    const parsed = loginQuerySchema.safeParse(request.query);
-    const state = parsed.success ? encodeState(parsed.data.redirect || "/") : "";
-
-    // Use QR code login for desktop; in-WeChat browser auto-detection
-    // could switch to snsapi_userinfo scope + oauth2/authorize endpoint.
-    const ua = (request.headers["user-agent"] || "").toLowerCase();
-    const isWeChat = ua.includes("micromessenger");
-
-    const params = new URLSearchParams({
-      appid: config.wechatAppId,
-      redirect_uri: config.wechatRedirectUri,
-      response_type: "code",
-      scope: isWeChat ? "snsapi_userinfo" : "snsapi_login",
-      state,
-    });
-
-    const endpoint = isWeChat
-      ? "https://open.weixin.qq.com/connect/oauth2/authorize"
-      : "https://open.weixin.qq.com/connect/qrconnect";
-
-    return reply.redirect(`${endpoint}?${params.toString()}#wechat_redirect`);
-  });
-
-  app.get("/api/auth/wechat/callback", async (request, reply) => {
-    const parsed = wechatCallbackQuerySchema.safeParse(request.query);
-    if (!parsed.success) {
-      return reply.code(400).send({ error: "invalid_callback_params" });
-    }
-
-    try {
-      const tokenData = await exchangeWeChatCode(parsed.data.code);
-      const userInfo = await fetchWeChatUserInfo(
-        tokenData.access_token,
-        tokenData.openid,
-      );
-
-      const user = await upsertUser(
-        "wechat",
-        tokenData.unionid || tokenData.openid,
-        userInfo.nickname,
-        userInfo.headimgurl || null,
-      );
-
-      const token = await signSession(user.id);
-      return replyWithAuth(reply, token, decodeState(parsed.data.state));
-    } catch (err: any) {
-      request.log.error(err, "WeChat OAuth callback failed");
-      return reply.code(401).send({ error: "wechat_auth_failed", message: err.message });
     }
   });
 
@@ -224,14 +219,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const row = result.rows[0];
-    return {
-      user: {
-        id: row.id,
-        provider: row.provider,
-        displayName: row.display_name,
-        avatarUrl: row.avatar_url,
-      },
-    };
+    return { user: userResponse(row) };
   });
 
   app.post("/api/auth/logout", async (_request, reply) => {

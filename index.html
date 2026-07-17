@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>糖霜乐园</title>
-    <link rel="stylesheet" href="styles.css?v=7" />
+    <title>糖豆乐园</title>
+    <link rel="stylesheet" href="styles.css?v=21" />
   </head>
   <body class="cover-active">
-    <section class="cover-screen" id="coverScreen" aria-label="糖霜乐园封面">
-      <img class="cover-art" src="assets/tangdou-cover.png" alt="糖霜乐园封面：卡通糖豆和糖果乐园" />
+    <section class="cover-screen" id="coverScreen" aria-label="糖豆乐园封面">
+      <img class="cover-art" src="assets/tangdou-cover.png" alt="糖豆乐园封面：卡通糖豆和糖果乐园" />
       <div class="cover-actions">
         <button class="start-button" id="startButton" type="button">开始游戏</button>
       </div>
@@ -18,7 +18,7 @@
       <section class="top-panel" aria-label="关卡状态">
         <div class="title-block">
           <p class="eyebrow">甜点小关卡</p>
-          <h1>糖霜乐园</h1>
+          <h1>糖豆乐园</h1>
         </div>
         <div class="cat-companion mood-ready" id="catCompanion" aria-label="陪玩猫咪：准备好啦">
           <div class="cat-bubble" id="catBubble" aria-hidden="true">喵，开局！</div>
@@ -42,8 +42,8 @@
             </div>
           </div>
           <div class="user-bar" id="userBar">
-            <button class="small-button login-button" id="loginButton" type="button">Google 登录</button>
-            <button class="small-button wechat-button" id="wechatLoginButton" type="button">微信登录</button>
+            <button class="small-button login-button" id="loginButton" type="button">登录</button>
+            <img class="user-avatar hidden" id="userAvatar" alt="" />
             <span class="user-name hidden" id="userName"></span>
             <button class="small-button logout-button hidden" id="logoutButton" type="button">退出</button>
           </div>
@@ -66,6 +66,69 @@
       </section>
     </main>
 
+    <footer class="site-footer">
+      <a href="http://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">黔ICP备18012360号-1</a>
+    </footer>
+
+    <div class="modal login-modal hidden" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+      <div class="modal-card login-card">
+        <button class="modal-close" id="closeLoginButton" type="button" aria-label="关闭登录窗口">×</button>
+
+        <div id="loginMethods">
+          <p class="eyebrow">欢迎回来</p>
+          <h2 id="loginTitle">选择登录方式</h2>
+          <p class="login-hint">用 Google 账户同步头像和排行榜，或先用昵称创建一个糖豆玩家名片。</p>
+          <div class="login-method-list">
+            <button class="login-method google-method" id="googleLoginButton" type="button">
+              <span class="method-icon">G</span>
+              <span><strong>Google 登录</strong><small>授权后同步名字、头像和成绩</small></span>
+              <span class="method-arrow">›</span>
+            </button>
+            <button class="login-method manual-method" id="manualLoginButton" type="button">
+              <span class="method-icon">✏️</span>
+              <span><strong>自行输入</strong><small>输入用户名并选择头像</small></span>
+              <span class="method-arrow">›</span>
+            </button>
+          </div>
+        </div>
+
+        <form class="manual-login-form hidden" id="manualLoginForm">
+          <button class="login-back" id="loginBackButton" type="button">‹ 返回</button>
+          <p class="eyebrow">创建玩家名片</p>
+          <h2>你想叫什么？</h2>
+          <label class="name-field" for="guestNameInput">
+            <span>用户名</span>
+            <input id="guestNameInput" name="guestName" type="text" maxlength="16" autocomplete="nickname" placeholder="例如：糖豆小猫" required />
+          </label>
+          <fieldset class="avatar-picker">
+            <legend>选择一个可爱头像</legend>
+            <label class="avatar-option">
+              <input type="radio" name="guestAvatar" value="assets/avatars/peach-cat.svg" checked />
+              <img src="assets/avatars/peach-cat.svg" alt="蜜桃小猫" />
+              <span>蜜桃猫</span>
+            </label>
+            <label class="avatar-option">
+              <input type="radio" name="guestAvatar" value="assets/avatars/mint-bunny.svg" />
+              <img src="assets/avatars/mint-bunny.svg" alt="薄荷兔兔" />
+              <span>薄荷兔</span>
+            </label>
+            <label class="avatar-option">
+              <input type="radio" name="guestAvatar" value="assets/avatars/lemon-bear.svg" />
+              <img src="assets/avatars/lemon-bear.svg" alt="柠檬小熊" />
+              <span>柠檬熊</span>
+            </label>
+            <label class="avatar-option">
+              <input type="radio" name="guestAvatar" value="assets/avatars/grape-fox.svg" />
+              <img src="assets/avatars/grape-fox.svg" alt="葡萄小狐" />
+              <span>葡萄狐</span>
+            </label>
+          </fieldset>
+          <p class="form-error hidden" id="loginFormError" role="alert"></p>
+          <button class="confirm-login-button" type="submit">带着这个头像出发</button>
+        </form>
+      </div>
+    </div>
+
     <div class="modal hidden" id="resultModal" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
       <div class="modal-card">
         <p class="eyebrow" id="resultKicker">关卡结束</p>
@@ -79,11 +142,29 @@
         </div>
         <div class="result-actions">
           <button id="playAgainButton" type="button">再玩一次</button>
-          <button id="shareButton" class="small-button share-button" type="button">📋 分享成绩</button>
+          <button id="shareButton" class="small-button share-button" type="button">🖼️ 生成分享海报</button>
         </div>
       </div>
     </div>
 
-    <script src="game.js?v=7"></script>
+    <div class="modal poster-modal hidden" id="posterModal" role="dialog" aria-modal="true" aria-labelledby="posterTitle">
+      <div class="modal-card poster-card">
+        <button class="modal-close" id="closePosterButton" type="button" aria-label="关闭分享海报">×</button>
+        <p class="eyebrow">分享你的甜蜜战绩</p>
+        <h2 id="posterTitle">成绩海报</h2>
+        <div class="poster-preview">
+          <canvas id="sharePosterCanvas" width="1080" height="1440" aria-label="糖豆乐园成绩分享海报"></canvas>
+        </div>
+        <p class="poster-hint">海报包含玩家头像、排行榜名次、最终得分和游戏二维码。</p>
+        <div class="poster-actions">
+          <button id="nativeSharePosterButton" type="button">分享图片</button>
+          <button id="downloadPosterButton" class="small-button secondary-poster-button" type="button">保存 PNG</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="vendor/qrcode.js?v=2.0.4"></script>
+    <script src="game.js?v=19"></script>
   </body>
 </html>

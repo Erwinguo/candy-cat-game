@@ -1,14 +1,19 @@
 # 糖豆乐园 API
 
-这是糖豆乐园的后端服务，负责登录、分数提交、排行榜和后续分享能力。
+这是糖豆乐园的后端服务，负责登录、分数提交、排行榜和分享能力。
 
 当前已实现：
 
 - `GET /health`
+- `POST /api/auth/guest`
+- `GET /api/auth/google/start`
+- `GET /api/auth/google/callback`
+- `GET /api/me`
+- `POST /api/auth/logout`
 - `POST /api/scores`
 - `GET /api/leaderboard`
 - `GET /api/leaderboard/me`
-- Google / 微信登录入口预留
+- `POST /api/shares`
 
 ## 本地准备
 
@@ -20,11 +25,23 @@ npm install
 copy .env.example .env
 ```
 
-把 `.env` 里的 `DATABASE_URL` 换成 Supabase 的 PostgreSQL 连接串。
+把 `.env` 里的 `DATABASE_URL` 换成 PostgreSQL 连接串。正式启用 Google 登录时，还需要填写 Google Cloud OAuth Client 的：
+
+```text
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+GOOGLE_REDIRECT_URI
+```
+
+本地默认回调地址：
+
+```text
+http://localhost:8787/api/auth/google/callback
+```
 
 ## 初始化数据库
 
-在 Supabase SQL Editor 里执行：
+在 PostgreSQL 中执行：
 
 ```sql
 -- 粘贴 server/db/schema.sql 的内容
@@ -50,19 +67,17 @@ http://localhost:8787
 
 ## 让前端连接 API
 
-静态前端默认不连接 API。部署后可以在浏览器控制台临时设置：
+静态前端默认读取 `config.js` 中的 `window.TANGDOU_API_BASE`。本地 Docker 版本会自动生成：
 
 ```js
-localStorage.setItem("tangdouApiBase", "https://你的-api-域名");
-location.reload();
+window.TANGDOU_API_BASE = "http://localhost:8787";
 ```
 
-正式上线时，可以在 `index.html` 里加：
+如果手动预览静态页面，也可以在浏览器控制台临时设置：
 
-```html
-<script>
-  window.TANGDOU_API_BASE = "https://你的-api-域名";
-</script>
+```js
+localStorage.setItem("tangdouApiBase", "http://localhost:8787");
+location.reload();
 ```
 
 ## 部署建议
@@ -70,25 +85,7 @@ location.reload();
 MVP 阶段：
 
 - 前端：GitHub Pages
-- 后端：Render / Fly.io / Railway
-- 数据库：Supabase PostgreSQL
+- 后端：Render / Fly.io / Railway / 云服务器
+- 数据库：PostgreSQL
 
-正式面向微信用户：
-
-- 前端和后端都部署到备案域名
-- 腾讯云 CVM 或轻量服务器
-- Docker 运行 Node API
-- PostgreSQL 可用 Supabase、腾讯云数据库或自建
-
-## 后续登录
-
-Google 登录：
-
-- 可以接 Supabase Auth
-- 或后端直接做 Google OAuth
-
-微信登录：
-
-- 需要微信开放平台网站应用
-- 需要 AppID、AppSecret、授权回调域名
-- 后端处理 OAuth 回调，再写入 `app_users`
+如果前后端同域部署，可以用 Docker Compose 运行 PostgreSQL、API 和 Nginx 前端容器；如果前端继续放在 GitHub Pages，记得把 API 的 `CORS_ORIGIN` 加上 GitHub Pages 域名。

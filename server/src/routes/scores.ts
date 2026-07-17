@@ -7,7 +7,6 @@ const submitScoreSchema = z.object({
   score: z.coerce.number().int().min(0).max(1_000_000),
   movesLeft: z.coerce.number().int().min(0).max(999),
   level: z.string().trim().min(1).max(64).default("classic"),
-  guestName: z.string().trim().min(1).max(32).optional(),
 });
 
 const leaderboardQuerySchema = z.object({
@@ -21,6 +20,7 @@ const rankQuerySchema = z.object({
 
 type ScoreRow = {
   id: string;
+  user_id: string | null;
   display_name: string;
   avatar_url: string | null;
   score: number;
@@ -33,6 +33,7 @@ type ScoreRow = {
 function normalizeScore(row: ScoreRow) {
   return {
     id: row.id,
+    userId: row.user_id,
     rank: Number(row.rank),
     displayName: row.display_name,
     avatarUrl: row.avatar_url,
@@ -58,30 +59,23 @@ export const scoreRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(400).send({ error: "invalid_score_payload", details: parsed.error.flatten() });
     }
 
-    const { score, movesLeft, level, guestName } = parsed.data;
-    const safeGuestName = guestName || "糖豆玩家";
+    const { score, movesLeft, level } = parsed.data;
     const userId = await getUserIdFromRequest(request);
-
-    let result;
-    if (userId) {
-      result = await query<{ id: string }>(
-        `
-          insert into scores (user_id, guest_name, score, moves_left, level)
-          values ($1, $2, $3, $4, $5)
-          returning id
-        `,
-        [userId, safeGuestName, score, movesLeft, level],
-      );
-    } else {
-      result = await query<{ id: string }>(
-        `
-          insert into scores (guest_name, score, moves_left, level)
-          values ($1, $2, $3, $4)
-          returning id
-        `,
-        [safeGuestName, score, movesLeft, level],
-      );
+    if (!userId) {
+      return reply.code(401).send({
+        error: "login_required",
+        message: "Login is required to record a leaderboard score.",
+      });
     }
+
+    const result = await query<{ id: string }>(
+      `
+        insert into scores (user_id, score, moves_left, level)
+        values ($1, $2, $3, $4)
+        returning id
+      `,
+      [userId, score, movesLeft, level],
+    );
 
     return reply.code(201).send({ id: result.rows[0].id });
   });
@@ -95,19 +89,52 @@ export const scoreRoutes: FastifyPluginAsync = async (app) => {
     const { level, limit } = parsed.data;
     const result = await query<ScoreRow>(
       `
-        select
-          s.id,
-          coalesce(u.display_name, s.guest_name, '糖豆玩家') as display_name,
-          u.avatar_url,
-          s.score,
-          s.moves_left,
-          s.level,
-          s.created_at,
-          rank() over (order by s.score desc, s.moves_left desc, s.created_at asc) as rank
-        from scores s
-        left join app_users u on u.id = s.user_id
-        where s.level = $1
-        order by s.score desc, s.moves_left desc, s.created_at asc
+        with user_scores as (
+          select
+            s.*,
+            row_number() over (
+              partition by s.user_id
+              order by s.score desc, s.moves_left desc, s.created_at asc
+            ) as user_best_order
+          from scores s
+          where s.level = $1 and s.user_id is not null
+        ),
+        legacy_guest_scores as (
+          select
+            s.*,
+            row_number() over (
+              partition by s.guest_name
+              order by s.score desc, s.moves_left desc, s.created_at asc
+            ) as user_best_order
+          from scores s
+          where s.level = $1
+            and s.user_id is null
+            and nullif(trim(s.guest_name), '') is not null
+        ),
+        player_bests as (
+          select
+            s.id, s.user_id, u.display_name, u.avatar_url,
+            s.score, s.moves_left, s.level, s.created_at
+          from user_scores s
+          join app_users u on u.id = s.user_id
+          where s.user_best_order = 1
+          union all
+          select
+            s.id, null::uuid as user_id, s.guest_name as display_name,
+            null::text as avatar_url, s.score, s.moves_left, s.level, s.created_at
+          from legacy_guest_scores s
+          where s.user_best_order = 1
+        ),
+        ranked as (
+          select
+            s.*,
+            rank() over (
+              order by s.score desc, s.moves_left desc, s.created_at asc
+            ) as rank
+          from player_bests s
+        )
+        select * from ranked
+        order by rank asc
         limit $2
       `,
       [level, limit],
@@ -124,10 +151,50 @@ export const scoreRoutes: FastifyPluginAsync = async (app) => {
 
     const result = await query<ScoreRow>(
       `
-        with ranked as (
+        with target as (
+          select s.*
+          from scores s
+          where s.id = $1 and s.user_id is not null
+        ),
+        other_user_scores as (
+          select
+            s.*,
+            row_number() over (
+              partition by s.user_id
+              order by s.score desc, s.moves_left desc, s.created_at asc
+            ) as user_best_order
+          from scores s
+          join target t on t.level = s.level
+          where s.user_id is not null and s.user_id <> t.user_id
+        ),
+        legacy_guest_scores as (
+          select
+            s.*,
+            row_number() over (
+              partition by s.guest_name
+              order by s.score desc, s.moves_left desc, s.created_at asc
+            ) as user_best_order
+          from scores s
+          join target t on t.level = s.level
+          where s.user_id is null
+            and nullif(trim(s.guest_name), '') is not null
+        ),
+        candidates as (
+          select id, user_id, guest_name, score, moves_left, level, created_at from target
+          union all
+          select id, user_id, guest_name, score, moves_left, level, created_at
+          from other_user_scores
+          where user_best_order = 1
+          union all
+          select id, user_id, guest_name, score, moves_left, level, created_at
+          from legacy_guest_scores
+          where user_best_order = 1
+        ),
+        ranked as (
           select
             s.id,
-            coalesce(u.display_name, s.guest_name, '糖豆玩家') as display_name,
+            s.user_id,
+            coalesce(u.display_name, s.guest_name, '匿名玩家') as display_name,
             u.avatar_url,
             s.score,
             s.moves_left,
@@ -137,10 +204,17 @@ export const scoreRoutes: FastifyPluginAsync = async (app) => {
               partition by s.level
               order by s.score desc, s.moves_left desc, s.created_at asc
             ) as rank
-          from scores s
+          from candidates s
           left join app_users u on u.id = s.user_id
+        ),
+        target_rank as (
+          select rank from ranked where id = $1
         )
-        select * from ranked where id = $1
+        select r.*
+        from ranked r
+        cross join target_rank t
+        where r.rank between greatest(1, t.rank - 4) and t.rank + 4
+        order by r.rank asc
       `,
       [parsed.data.scoreId],
     );
@@ -149,6 +223,12 @@ export const scoreRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(404).send({ error: "score_not_found" });
     }
 
-    return { item: normalizeScore(result.rows[0]) };
+    const items = result.rows.map(normalizeScore);
+    const item = items.find((score) => score.id === parsed.data.scoreId);
+    if (!item) {
+      return reply.code(404).send({ error: "score_not_found" });
+    }
+
+    return { item, items };
   });
 };
